@@ -84,9 +84,9 @@ public class WizWebView extends WebView  {
         // The default is false.
         // The built-in mechanisms are the only currently supported zoom mechanisms,
         // so it is recommended that this setting is always enabled.
-        webSettings.setBuiltInZoomControls(true);
-        webSettings.setLoadWithOverviewMode(true);
-        webSettings.setUseWideViewPort(true);
+        webSettings.setBuiltInZoomControls(false);
+        webSettings.setLoadWithOverviewMode(false);
+        webSettings.setUseWideViewPort(false);
 
         if (android.os.Build.VERSION.SDK_INT > android.os.Build.VERSION_CODES.ICE_CREAM_SANDWICH_MR1) {
             Level16Apis.enableUniversalAccess(webSettings);
