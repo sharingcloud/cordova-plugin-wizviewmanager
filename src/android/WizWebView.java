@@ -1,9 +1,9 @@
 /*
- *  __    __ _                  _   __    __     _          _               
+ *  __    __ _                  _   __    __     _          _
  * / / /\ \ (_)______ _ _ __ __| | / / /\ \ \___| |__/\   /(_) _____      __
  * \ \/  \/ / |_  / _` | '__/ _` | \ \/  \/ / _ \ '_ \ \ / / |/ _ \ \ /\ / /
- *  \  /\  /| |/ / (_| | | | (_| |  \  /\  /  __/ |_) \ V /| |  __/\ V  V / 
- *   \/  \/ |_/___\__,_|_|  \__,_|   \/  \/ \___|_.__/ \_/ |_|\___| \_/\_/  
+ *  \  /\  /| |/ / (_| | | | (_| |  \  /\  /  __/ |_) \ V /| |  __/\ V  V /
+ *   \/  \/ |_/___\__,_|_|  \__,_|   \/  \/ \___|_.__/ \_/ |_|\___| \_/\_/
  *
  * @author  Ally Ogilvie
  * @copyright Wizcorp Inc. [ Incorporated Wizards ] 2013
@@ -18,6 +18,7 @@ import android.graphics.Color;
 import android.os.Build;
 import android.view.Gravity;
 import android.view.ViewGroup;
+import android.view.KeyEvent;
 import android.webkit.MimeTypeMap;
 import android.widget.RelativeLayout;
 import org.apache.cordova.CallbackContext;
@@ -32,6 +33,7 @@ import android.view.View;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.webkit.WebChromeClient;
 import android.widget.FrameLayout;
 
 import java.io.File;
@@ -78,9 +80,9 @@ public class WizWebView extends WebView  {
         webSettings.setJavaScriptEnabled(true);
 
         webSettings.setDomStorageEnabled(true);
-        // Whether or not on-screen controls are displayed can be set with setDisplayZoomControls(boolean). 
+        // Whether or not on-screen controls are displayed can be set with setDisplayZoomControls(boolean).
         // The default is false.
-        // The built-in mechanisms are the only currently supported zoom mechanisms, 
+        // The built-in mechanisms are the only currently supported zoom mechanisms,
         // so it is recommended that this setting is always enabled.
         webSettings.setBuiltInZoomControls(true);
         webSettings.setLoadWithOverviewMode(true);
@@ -113,9 +115,10 @@ public class WizWebView extends WebView  {
 
         // Set a transparent background
         this.setBackgroundColor(Color.TRANSPARENT);
-        if (Build.VERSION.SDK_INT >= 11) this.setLayerType(WebView.LAYER_TYPE_SOFTWARE, null);
+        if (Build.VERSION.SDK_INT >= 11) this.setLayerType(WebView.LAYER_TYPE_HARDWARE, null);
 
         // Override url loading on WebViewClient
+        this.setWebChromeClient(new WebChromeClient ());
         this.setWebViewClient(new WebViewClient () {
             @Override
             public boolean shouldOverrideUrlLoading(WebView wView, String url) {
@@ -316,6 +319,34 @@ public class WizWebView extends WebView  {
             // Apply Defaults
             this.setLayoutParams(COVER_SCREEN_GRAVITY_CENTER);
         }
+
+        this.setOnKeyListener(new OnKeyListener() {
+            @Override
+            public boolean onKey(View v, int keyCode, KeyEvent event) {
+                if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                    WebView webView = (WebView) v;
+
+                    switch(keyCode) {
+                        case KeyEvent.KEYCODE_BACK:
+                            String jsString = "" +
+                            "\tvar event = document.createEvent(\"HTMLEvents\");\n" +
+                            "\tevent.initEvent(\"message\", true, true);\n" +
+                            "\tevent.eventName = \"message\";\n" +
+                            "\tevent.memo = { };\n" +
+                            "\tevent.data = { type: \"backbutton_pressed\" };\n" +
+                            "\tdispatchEvent(event);\n";
+
+                            // Send a backbutton event
+                            webView.evaluateJavascript(jsString, null);
+                            break;
+                    }
+
+                    return true;
+                }
+
+                return false;
+            }
+        });
 
         Log.d(TAG, "Create complete");
     } // ************ END CONSTRUCTOR **************
