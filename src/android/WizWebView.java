@@ -372,6 +372,7 @@ public class WizWebView extends WebView  {
         int _bottom = 0;
         int _right = 0;
         int _left = 0;
+        boolean _fullscreen = false;
 
         if (settings.has("height")) {
             try {
@@ -462,14 +463,24 @@ public class WizWebView extends WebView  {
             }
         }
 
-        FrameLayout.LayoutParams newLayoutParams = (FrameLayout.LayoutParams) this.getLayoutParams();
-        newLayoutParams.setMargins(_left, _top, _right, _bottom);
-        newLayoutParams.height = _height;
-        newLayoutParams.width = _width;
+        if (!_fullscreen) {
+            FrameLayout.LayoutParams newLayoutParams = (FrameLayout.LayoutParams) this.getLayoutParams();
+            newLayoutParams.setMargins(_left, _top, _right, _bottom);
+            newLayoutParams.height = _height;
+            newLayoutParams.width = _width;
+            this.setLayoutParams(newLayoutParams);
 
-        this.setLayoutParams(newLayoutParams);
+            Log.d(TAG, "new layout -> width: " + newLayoutParams.width + " - height: " + newLayoutParams.height + " - margins: " + newLayoutParams.leftMargin + "," + newLayoutParams.topMargin + "," + newLayoutParams.rightMargin + "," + newLayoutParams.bottomMargin);
+        } else {
+            FrameLayout.LayoutParams newLayoutParams = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.FILL_PARENT,
+                ViewGroup.LayoutParams.FILL_PARENT
+            );
+            this.setLayoutParams(newLayoutParams);
 
-        Log.d(TAG, "new layout -> width: " + newLayoutParams.width + " - height: " + newLayoutParams.height + " - margins: " + newLayoutParams.leftMargin + "," + newLayoutParams.topMargin + "," + newLayoutParams.rightMargin + "," + newLayoutParams.bottomMargin);
+            Log.d(TAG, "new layout -> width: " + newLayoutParams.width + " - height: " + newLayoutParams.height + " - margins: " + newLayoutParams.leftMargin + "," + newLayoutParams.topMargin + "," + newLayoutParams.rightMargin + "," + newLayoutParams.bottomMargin);
+        }
+
 
         if (settings.has("src")) {
             try {
