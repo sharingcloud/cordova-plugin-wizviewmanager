@@ -28,6 +28,8 @@ import org.json.JSONObject;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
 import android.util.Log;
 import android.view.View;
 import android.webkit.WebSettings;
@@ -50,6 +52,7 @@ public class WizWebView extends WebView  {
     private CallbackContext create_cb;
     private CallbackContext load_cb;
     private Context mContext;
+    private String startingUrl;
 
     static final FrameLayout.LayoutParams COVER_SCREEN_GRAVITY_CENTER =
             new FrameLayout.LayoutParams(
@@ -62,6 +65,7 @@ public class WizWebView extends WebView  {
         super(context);
 
         mContext = context;
+        startingUrl = null;
 
         Log.d("WizWebView", "[WizWebView] *************************************");
         Log.d("WizWebView", "[WizWebView] building - new Wizard View");
@@ -203,6 +207,29 @@ public class WizWebView extends WebView  {
                     // app will handle this url, don't change the browser url
                     return true;
                 }
+
+                // Whitelist
+                WizWebView wZView = (WizWebView) wView;
+                if (wZView.startingUrl != null) {
+                    Uri startingUri = Uri.parse(wZView.startingUrl);
+                    String hostUri = startingUri.getScheme() + "://" + startingUri.getHost();
+
+                    if (!url.startsWith(hostUri)) {
+                        String jsString = "" +
+                            "\tvar event = document.createEvent(\"HTMLEvents\");\n" +
+                            "\tevent.initEvent(\"message\", true, true);\n" +
+                            "\tevent.eventName = \"message\";\n" +
+                            "\tevent.memo = { };\n" +
+                            "\tevent.data = { type: \"open_external_url\", url: \"" + url + "\" };\n" +
+                            "\tdispatchEvent(event);\n";
+
+                        // Send an external link event
+                        wView.evaluateJavascript(jsString, null);
+
+                        return true;
+                    }
+                }
+
                 // allow all other url requests
                 return false;
             }
@@ -211,6 +238,11 @@ public class WizWebView extends WebView  {
             public void onPageFinished(WebView wView, String url) {
 
                 WizViewManager.updateViewList();
+
+                WizWebView wZView = (WizWebView)wView;
+                if (wZView.startingUrl == null) {
+                    wZView.startingUrl = url;
+                }
 
                 // Push wizViewMessenger
 
