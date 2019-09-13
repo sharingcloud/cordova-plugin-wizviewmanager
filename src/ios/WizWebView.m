@@ -1,17 +1,17 @@
 /* WizWebView - Creates Instance of wizard UIWebView.
  *
- * @author Ally Ogilvie 
+ * @author Ally Ogilvie
  * @copyright Wizcorp Inc. [ Incorporated Wizards ] 2013
  * @file WizWebView.m for PhoneGap
  *
- */ 
+ */
 #import "WizDebugLog.h"
 #import "WizWebView.h"
 #import "WizViewManager.h"
 
 @implementation WizWebView
 
-@synthesize wizView, viewName;
+@synthesize wizView, viewName, startingUrl;
 
 static CDVPlugin *viewManager;
 
@@ -30,10 +30,10 @@ static CDVPlugin *viewManager;
 }
 
 - (UIWebView *)createNewInstanceViewFromManager:(CDVPlugin *)myViewManager newBounds:(CGRect)webViewBounds viewName:(NSString *)name sourceToLoad:(NSString *)src withOptions:(NSDictionary *)options {
-    
+
     viewName = name;
     viewManager = myViewManager;
-    
+
     wizView = [[UIWebView alloc] initWithFrame:webViewBounds];
     wizView.delegate = self;
     wizView.multipleTouchEnabled   = YES;
@@ -42,7 +42,9 @@ static CDVPlugin *viewManager;
     wizView.userInteractionEnabled = YES;
     wizView.opaque = NO;
     wizView.alpha = 0;
-    
+
+    startingUrl = nil;
+
     // Set scales to fit setting based on Cordova settings.
     NSString *path = [[NSBundle mainBundle] pathForResource:@"Cordova" ofType:@"plist"];
     NSMutableDictionary *cordovaConfig = [NSMutableDictionary dictionaryWithContentsOfFile:path];
@@ -157,9 +159,9 @@ static CDVPlugin *viewManager;
         return;
     }
     NSMutableDictionary *callbackDict = [[NSMutableDictionary alloc] initWithDictionary:[WizViewManager getViewLoadedCallbackId]];
-    
+
     WizLog(@"[WizViewManager] ******* didFailLoadWithError Code : %i Description : %@ Failure : %@", error.code, error.localizedDescription, error.localizedFailureReason);
-    
+
     CDVPluginResult *pluginResult;
     if ([callbackDict objectForKey:[NSString stringWithFormat:@"%@_viewLoadedCallback", viewName]]) {
         NSString *callbackId = [callbackDict objectForKey:[NSString stringWithFormat:@"%@_viewLoadedCallback", viewName]];
@@ -168,7 +170,7 @@ static CDVPlugin *viewManager;
         // Remove callback
         [WizViewManager removeViewLoadedCallback:[NSString stringWithFormat:@"%@_viewLoadedCallback", viewName]];
     }
-    
+
     if ([callbackDict objectForKey:[NSString stringWithFormat:@"%@_updateCallback", viewName]]) {
         NSString *callbackId = [callbackDict objectForKey:[NSString stringWithFormat:@"%@_updateCallback", viewName]];
         pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsDictionary:[self throwError:103 description:@"Loading source error"]];
@@ -184,11 +186,11 @@ static CDVPlugin *viewManager;
     WizLog(@"[WizWebView] ******* webViewDidFinishLoad" );
 
     // to send data straight to mainView onLoaded via phonegap callback
-     
+
     NSMutableDictionary *callbackDict = [[NSMutableDictionary alloc] initWithDictionary:[WizViewManager getViewLoadedCallbackId]];
-    
+
     WizLog(@"[WizViewManager] ******* viewName: %@ viewLoadedCallbackId : %@ ", callbackDict, viewName);
-    
+
     if ([callbackDict objectForKey:[NSString stringWithFormat:@"%@_viewLoadedCallback", viewName]]) {
         NSString *callbackId = [callbackDict objectForKey:[NSString stringWithFormat:@"%@_viewLoadedCallback", viewName]];
         CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
@@ -196,7 +198,7 @@ static CDVPlugin *viewManager;
         // Remove callback
         [WizViewManager removeViewLoadedCallback:[NSString stringWithFormat:@"%@_viewLoadedCallback", viewName]];
     }
-    
+
     if ([callbackDict objectForKey:[NSString stringWithFormat:@"%@_updateCallback", viewName]]) {
         NSString *callbackId = [callbackDict objectForKey:[NSString stringWithFormat:@"%@_updateCallback", viewName]];
         CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
@@ -204,14 +206,14 @@ static CDVPlugin *viewManager;
         // Remove callback
         [WizViewManager removeViewLoadedCallback:[NSString stringWithFormat:@"%@_updateCallback", viewName]];
     }
-    
+
     [callbackDict release];
-    
+
     // Update view list array for each view
     WizViewManager *wizViewManager = [WizViewManager instance];
     [wizViewManager updateViewList];
-    
-    
+
+
     // Feed in the view name to the view's window.name property
     NSMutableDictionary *viewList = [[NSMutableDictionary alloc] initWithDictionary:[WizViewManager getViews]];
     for (NSString *key in viewList) {
@@ -289,12 +291,12 @@ static CDVPlugin *viewManager;
     }; \
  \
     window.wizViewMessenger = new WizViewMessenger(); ";
-    
+
     [theWebView stringByEvaluatingJavaScriptFromString:js];
 }
 
 - (BOOL)webView:(UIWebView *)webView shouldStartLoadWithRequest:(NSMutableURLRequest *)request navigationType:(UIWebViewNavigationType)navigationType {
-    
+
     NSString *requestString = [[request URL] absoluteString];
     // get prefix
     NSArray *prefixer = [requestString componentsSeparatedByString:@":"];
@@ -302,43 +304,69 @@ static CDVPlugin *viewManager;
 
     // do insensitive compare to support SDK >5
     if ([(NSString*)[prefixer objectAtIndex:0] caseInsensitiveCompare:@"wizPostMessage"] == 0) {
-        
+
         NSArray *requestComponents = [requestString componentsSeparatedByString:@"://"];
         NSString *postMessage = [[NSString alloc] initWithString:(NSString*)[requestComponents objectAtIndex:1]];
-        
+
         NSArray *messageComponents = [postMessage componentsSeparatedByString:@"?"];
-        
+
         NSString *originView = [[NSString alloc] initWithString:(NSString*)[messageComponents objectAtIndex:0]];
         NSString *targetView = [[NSString alloc] initWithString:(NSString*)[messageComponents objectAtIndex:1]];
         NSString *data = [[NSString alloc] initWithString:(NSString*)[messageComponents objectAtIndex:2]];
         NSString *type = [[NSString alloc] initWithString:(NSString*)[messageComponents objectAtIndex:3]];
-        
+
         NSLog(@"[WizWebView] ******* targetView is:  %@", targetView );
-        
+
         // NSLog(@"[AppDelegate wizMessageView()] ******* postData is:  %@", postData );
-        
+
         NSMutableDictionary *viewList = [[NSMutableDictionary alloc] initWithDictionary:[WizViewManager getViews]];
-        
+
         if ([viewList objectForKey:targetView]) {
-            
+
             UIWebView *targetWebView = [viewList objectForKey:targetView];
             NSString *js = [NSString stringWithFormat:@"wizViewMessenger.__triggerMessageEvent(\"%@\", \"%@\", \"%@\", \"%@\");", originView, targetView, data, type];
             [targetWebView stringByEvaluatingJavaScriptFromString:js];
 
             // WizLog(@"[AppDelegate wizMessageView()] ******* current views... %@", viewList);
         }
-        
+
         [postMessage release];
         postMessage = nil;
         [originView release];
         [targetView release];
         [data release];
         [viewList release];
-        
+
         return NO;
-        
+
  	}
-    
+
+    if (startingUrl == nil) {
+        startingUrl = [[NSString alloc] initWithString:requestString];
+    } else {
+        NSArray *requestComponents = [startingUrl componentsSeparatedByString:@"://"];
+        NSString *postMessage = [[NSString alloc] initWithString:(NSString*)[requestComponents objectAtIndex:1]];
+        NSArray *messageComponents = [postMessage componentsSeparatedByString:@"/"];
+
+        NSString *protocol = [[NSString alloc] initWithString:(NSString*)[requestComponents objectAtIndex:0]];
+        NSString *host = [[NSString alloc] initWithString:(NSString*)[messageComponents objectAtIndex:0]];
+
+        NSString *hostUri = [NSString stringWithFormat:@"%@://%@", protocol, host];
+
+        if (![requestString hasPrefix:hostUri]) {
+            NSString *js = [NSString stringWithFormat:@"var event = document.createEvent('HTMLEvents'); \
+                event.initEvent('message', true, true); \
+                event.eventName = 'message'; \
+                event.memo = { }; \
+                event.data = { type: 'open_external_url', url: '%@' }; \
+                dispatchEvent(event);", requestString];
+
+            [webView stringByEvaluatingJavaScriptFromString:js];
+
+            return NO;
+        }
+    }
+
     // Accept any other URLs
 	return YES;
 }
