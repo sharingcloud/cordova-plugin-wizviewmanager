@@ -341,31 +341,31 @@ static CDVPlugin *viewManager;
 
  	}
 
-    if (startingUrl == nil) {
-        startingUrl = [[NSString alloc] initWithString:requestString];
-    } else {
-        NSArray *requestComponents = [startingUrl componentsSeparatedByString:@"://"];
-        NSString *postMessage = [[NSString alloc] initWithString:(NSString*)[requestComponents objectAtIndex:1]];
-        NSArray *messageComponents = [postMessage componentsSeparatedByString:@"/"];
+    // if (startingUrl == nil) {
+    //     startingUrl = [[NSString alloc] initWithString:requestString];
+    // } else {
+    //     NSArray *requestComponents = [startingUrl componentsSeparatedByString:@"://"];
+    //     NSString *postMessage = [[NSString alloc] initWithString:(NSString*)[requestComponents objectAtIndex:1]];
+    //     NSArray *messageComponents = [postMessage componentsSeparatedByString:@"/"];
 
-        NSString *protocol = [[NSString alloc] initWithString:(NSString*)[requestComponents objectAtIndex:0]];
-        NSString *host = [[NSString alloc] initWithString:(NSString*)[messageComponents objectAtIndex:0]];
+    //     NSString *protocol = [[NSString alloc] initWithString:(NSString*)[requestComponents objectAtIndex:0]];
+    //     NSString *host = [[NSString alloc] initWithString:(NSString*)[messageComponents objectAtIndex:0]];
 
-        NSString *hostUri = [NSString stringWithFormat:@"%@://%@", protocol, host];
+    //     NSString *hostUri = [NSString stringWithFormat:@"%@://%@", protocol, host];
 
-        if (![requestString hasPrefix:hostUri]) {
-            NSString *js = [NSString stringWithFormat:@"var event = document.createEvent('HTMLEvents'); \
-                event.initEvent('message', true, true); \
-                event.eventName = 'message'; \
-                event.memo = { }; \
-                event.data = { type: 'open_external_url', url: '%@' }; \
-                dispatchEvent(event);", requestString];
+    //     if (![requestString hasPrefix:hostUri]) {
+    //         NSString *js = [NSString stringWithFormat:@"var event = document.createEvent('HTMLEvents'); \
+    //             event.initEvent('message', true, true); \
+    //             event.eventName = 'message'; \
+    //             event.memo = { }; \
+    //             event.data = { type: 'open_external_url', url: '%@' }; \
+    //             dispatchEvent(event);", requestString];
 
-            [webView stringByEvaluatingJavaScriptFromString:js];
+    //         [webView stringByEvaluatingJavaScriptFromString:js];
 
-            return NO;
-        }
-    }
+    //         return NO;
+    //     }
+    // }
 
     // Accept any other URLs
 	return YES;
