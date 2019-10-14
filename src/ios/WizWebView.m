@@ -11,7 +11,7 @@
 
 @implementation WizWebView
 
-@synthesize wizView, viewName, startingUrl;
+@synthesize wizView, viewName, whitelistedUrl;
 
 static CDVPlugin *viewManager;
 
@@ -43,7 +43,7 @@ static CDVPlugin *viewManager;
     wizView.opaque = NO;
     wizView.alpha = 0;
 
-    startingUrl = nil;
+    whitelistedUrl = nil;
 
     // Set scales to fit setting based on Cordova settings.
     NSString *path = [[NSBundle mainBundle] pathForResource:@"Cordova" ofType:@"plist"];
@@ -58,6 +58,10 @@ static CDVPlugin *viewManager;
             wizView.scalesPageToFit = NO;
             NSLog(@"[WizWebView] ******* WARNING  - EnableViewportScale was not specified in Cordova.plist");
         }
+    }
+
+    if ([options objectForKey:@"whitelistedUrl"]) {
+        whitelistedUrl = [options objectForKey:@"whitelistedUrl"];
     }
 
     // Set bounces setting based on option settings.
@@ -341,31 +345,35 @@ static CDVPlugin *viewManager;
 
  	}
 
-    // if (startingUrl == nil) {
-    //     startingUrl = [[NSString alloc] initWithString:requestString];
-    // } else {
-    //     NSArray *requestComponents = [startingUrl componentsSeparatedByString:@"://"];
-    //     NSString *postMessage = [[NSString alloc] initWithString:(NSString*)[requestComponents objectAtIndex:1]];
-    //     NSArray *messageComponents = [postMessage componentsSeparatedByString:@"/"];
+    bool isExternal = true;
+    if (whitelistedUrl == nil) {
+        NSLog(@"[WizWebView] URL whitelisting is disabled.")
+        isExternal = false;
+    } else {
+        NSLog(@"[WizWebView] Using whitelisted URL: %@", whitelistedUrl);
+        NSString *httpPath = [NSString stringWithFormat:@"http://%@", whitelistedUrl];
+        NSString *httpsPath = [NSString stringWithFormat:@"https://%@", whitelistedUrl];
 
-    //     NSString *protocol = [[NSString alloc] initWithString:(NSString*)[requestComponents objectAtIndex:0]];
-    //     NSString *host = [[NSString alloc] initWithString:(NSString*)[messageComponents objectAtIndex:0]];
+        if ([requestString hasPrefix:httpPath] || [requestString hasPrefix:httpsPath]) {
+            NSLog(@"[WizWebView] Whitelisting url %@ ...", requestString);
+            isExternal = false;
+        }
+    }
 
-    //     NSString *hostUri = [NSString stringWithFormat:@"%@://%@", protocol, host];
+    if (isExternal) {
+        NSLog(@"[WizWebView] Sending open_external_url event for URL %@", requestString);
 
-    //     if (![requestString hasPrefix:hostUri]) {
-    //         NSString *js = [NSString stringWithFormat:@"var event = document.createEvent('HTMLEvents'); \
-    //             event.initEvent('message', true, true); \
-    //             event.eventName = 'message'; \
-    //             event.memo = { }; \
-    //             event.data = { type: 'open_external_url', url: '%@' }; \
-    //             dispatchEvent(event);", requestString];
+        NSString *js = [NSString stringWithFormat:@"var event = document.createEvent('HTMLEvents'); \
+            event.initEvent('message', true, true); \
+            event.eventName = 'message'; \
+            event.memo = { }; \
+            event.data = { type: 'open_external_url', url: '%@' }; \
+            dispatchEvent(event);", requestString];
 
-    //         [webView stringByEvaluatingJavaScriptFromString:js];
+        [webView stringByEvaluatingJavaScriptFromString:js];
 
-    //         return NO;
-    //     }
-    // }
+        return NO;
+    }
 
     // Accept any other URLs
 	return YES;

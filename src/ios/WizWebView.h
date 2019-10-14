@@ -14,7 +14,7 @@
 
 @property (nonatomic, retain) UIWebView *wizView;
 @property (nonatomic, retain) NSString *viewName;
-@property (nonatomic, retain) NSString *startingUrl;
+@property (nonatomic, retain) NSString *whitelistedUrl;
 
 - (UIWebView *)createNewInstanceViewFromManager:(CDVPlugin *)myViewManager newBounds:(CGRect)webViewBounds viewName:(NSString *)name sourceToLoad:(NSString *)src withOptions:(NSDictionary *)options;
 
