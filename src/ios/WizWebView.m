@@ -42,6 +42,7 @@ static CDVPlugin *viewManager;
     wizView.userInteractionEnabled = YES;
     wizView.opaque = NO;
     wizView.alpha = 0;
+    wizView.dataDetectorTypes = UIDataDetectorTypeAll;
 
     whitelistedUrl = nil;
 
@@ -61,7 +62,7 @@ static CDVPlugin *viewManager;
     }
 
     if ([options objectForKey:@"whitelistedUrl"]) {
-        whitelistedUrl = [options objectForKey:@"whitelistedUrl"];
+        whitelistedUrl = [[NSString alloc] initWithString:[options objectForKey:@"whitelistedUrl"]];
     }
 
     // Set bounces setting based on option settings.
@@ -345,9 +346,16 @@ static CDVPlugin *viewManager;
 
  	}
 
+    NSString* url = [[request URL] absoluteString];
+    NSString* documentURL = [[request mainDocumentURL] absoluteString];
+    bool sameSite = false;
+    if ([url isEqualToString:documentURL]) {
+        sameSite = true;
+    }
+
     bool isExternal = true;
-    if (whitelistedUrl == nil) {
-        NSLog(@"[WizWebView] URL whitelisting is disabled.")
+    if (whitelistedUrl == nil || !sameSite) {
+        NSLog(@"[WizWebView] URL whitelisting is disabled.");
         isExternal = false;
     } else {
         NSLog(@"[WizWebView] Using whitelisted URL: %@", whitelistedUrl);
