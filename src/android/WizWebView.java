@@ -43,6 +43,8 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 
 @TargetApi(Build.VERSION_CODES.HONEYCOMB)
 @SuppressLint("SetJavaScriptEnabled")
@@ -52,7 +54,7 @@ public class WizWebView extends WebView  {
     private CallbackContext create_cb;
     private CallbackContext load_cb;
     private Context mContext;
-    private String startingUrl;
+    private String whitelistedUrl;
 
     static final FrameLayout.LayoutParams COVER_SCREEN_GRAVITY_CENTER =
             new FrameLayout.LayoutParams(
@@ -65,12 +67,20 @@ public class WizWebView extends WebView  {
         super(context);
 
         mContext = context;
-        startingUrl = null;
+        whitelistedUrl = null;
 
         Log.d("WizWebView", "[WizWebView] *************************************");
         Log.d("WizWebView", "[WizWebView] building - new Wizard View");
         Log.d("WizWebView", "[WizWebView] -> " + viewName);
         Log.d("WizWebView", "[WizWebView] *************************************");
+
+        try {
+            this.whitelistedUrl = settings.getString("whitelistedUrl");
+        } catch (JSONException exc) {
+            Log.d("WizWebView", "[WizWebView] Exception while getting 'whitelistedUrl': " + exc.toString());
+        }
+
+        Log.d("WizWebView", "[WizWebView] Whitelist: " + this.whitelistedUrl);
 
         // Hold create callback and execute after page load
         this.create_cb = callbackContext;
@@ -210,24 +220,36 @@ public class WizWebView extends WebView  {
 
                 // Whitelist
                 WizWebView wZView = (WizWebView) wView;
-                if (wZView.startingUrl != null) {
-                    Uri startingUri = Uri.parse(wZView.startingUrl);
-                    String hostUri = startingUri.getScheme() + "://" + startingUri.getHost();
+                boolean isExternal = true;
 
-                    if (!url.startsWith(hostUri)) {
-                        String jsString = "" +
-                            "\tvar event = document.createEvent(\"HTMLEvents\");\n" +
-                            "\tevent.initEvent(\"message\", true, true);\n" +
-                            "\tevent.eventName = \"message\";\n" +
-                            "\tevent.memo = { };\n" +
-                            "\tevent.data = { type: \"open_external_url\", url: \"" + url + "\" };\n" +
-                            "\tdispatchEvent(event);\n";
-
-                        // Send an external link event
-                        wView.evaluateJavascript(jsString, null);
-
-                        return true;
+                if (wZView.whitelistedUrl == null) {
+                    Log.d("WizWebView", "[WizWebView] No whitelisted url, disabling external mode.");
+                    isExternal = false;
+                } else {
+                    // HTTP & HTTPS
+                    String httpHostUri = "http://" + wZView.whitelistedUrl;
+                    String httpsHostUri = "https://" + wZView.whitelistedUrl;
+                    if (url.startsWith(httpHostUri) || url.startsWith(httpsHostUri)) {
+                        Log.d("WizWebView", "[WizWebView] Url " + url + " is whitelisted. External mode disabled.");
+                        isExternal = false;
                     }
+                }
+
+                if (isExternal) {
+                    Log.d("WizWebView", "[WizWebView] Open external URL event sent for Url " + url.toString());
+
+                    String jsString = "" +
+                        "\tvar event = document.createEvent(\"HTMLEvents\");\n" +
+                        "\tevent.initEvent(\"message\", true, true);\n" +
+                        "\tevent.eventName = \"message\";\n" +
+                        "\tevent.memo = { };\n" +
+                        "\tevent.data = { type: \"open_external_url\", url: \"" + url + "\" };\n" +
+                        "\tdispatchEvent(event);\n";
+
+                    // Send an external link event
+                    wView.evaluateJavascript(jsString, null);
+
+                    return true;
                 }
 
                 // allow all other url requests
@@ -240,9 +262,6 @@ public class WizWebView extends WebView  {
                 WizViewManager.updateViewList();
 
                 WizWebView wZView = (WizWebView)wView;
-                if (wZView.startingUrl == null) {
-                    wZView.startingUrl = url;
-                }
 
                 // Push wizViewMessenger
 
