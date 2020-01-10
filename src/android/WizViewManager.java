@@ -272,21 +272,30 @@ public class WizViewManager extends CordovaPlugin {
                 final WizWebView targetView = (WizWebView) viewList.get(viewName);
 
                 cordova.getActivity().runOnUiThread(
-                        new Runnable() {
-                            @Override
-                            public void run() {
-                                ViewGroup viewGroup = (ViewGroup) targetView.getParent();
-                                viewGroup.removeView(targetView);
-                                viewGroup = null;
-                            }
-                        });
+                    new Runnable() {
+                        @Override
+                        public void run() {
+                            ViewGroup viewGroup = (ViewGroup) targetView.getParent();
+                            viewGroup.removeView(targetView);
+
+                            // Really remove view
+                            targetView.onPause();
+                            targetView.removeAllViews();
+                            targetView.destroyDrawingCache();
+                            targetView.destroy();
+                            targetView = null;
+
+                            viewGroup = null;
+                        }
+                    }
+                );
 
                 viewList.remove(viewName);
                 updateViewList();
 
                 // Remove is running on a different thread, but for now assume view was removed
                 callbackContext.success();
-                        return true;
+                return true;
             } else {
                 // Cannot find view
                 Log.e(TAG, "Cannot remove view. View not found");
@@ -619,24 +628,24 @@ public class WizViewManager extends CordovaPlugin {
                     final View targetView = (View) viewList.get(viewName);
 
                     cordova.getActivity().runOnUiThread(
-                            new Runnable() {
-                                @Override
-                                public void run() {
-                                    WizViewManager.setLayout(targetView, options);
-                                }
+                        new Runnable() {
+                            @Override
+                            public void run() {
+                                WizViewManager.setLayout(targetView, options);
                             }
-                            );
+                        }
+                    );
                 } else {
                     final WizWebView targetView = (WizWebView) viewList.get(viewName);
 
                     cordova.getActivity().runOnUiThread(
-                            new Runnable() {
-                                @Override
-                                public void run() {
-                                    targetView.setLayout(options, null);
-                                }
+                        new Runnable() {
+                            @Override
+                            public void run() {
+                                targetView.setLayout(options, null);
                             }
-                            );
+                        }
+                    );
                 }
 
             } catch (Exception e) {
@@ -669,12 +678,12 @@ public class WizViewManager extends CordovaPlugin {
                     Log.d(TAG, "[load] url>> " + url);
                     final CallbackContext load_cb = callbackContext;
                     cordova.getActivity().runOnUiThread(
-                            new Runnable() {
-                                public void run() {
-                                    targetView.load(url, load_cb);
-                                }
+                        new Runnable() {
+                            public void run() {
+                                targetView.load(url, load_cb);
                             }
-                            );
+                        }
+                    );
                 } else {
                     Log.e(TAG, "Cannot load into view. No source to load.");
                     callbackContext.error("Cannot load into view.  No source to load.");
@@ -720,19 +729,19 @@ public class WizViewManager extends CordovaPlugin {
         final String _jsString = jsString;
 
         _cordova.getActivity().runOnUiThread(
-                new Runnable() {
-                    public void run() {
-                        if (_targetView != null) {
-                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
-                                // Only for Kitkat and newer versions
-                                _targetView.evaluateJavascript(_jsString, null);
-                            } else {
-                                _targetView.loadUrl("javascript:" + _jsString);
-                            }
+            new Runnable() {
+                public void run() {
+                    if (_targetView != null) {
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
+                            // Only for Kitkat and newer versions
+                            _targetView.evaluateJavascript(_jsString, null);
+                        } else {
+                            _targetView.loadUrl("javascript:" + _jsString);
                         }
                     }
                 }
-                );
+            }
+        );
 
         // Clean up references
         targetView = null;
@@ -829,13 +838,7 @@ public class WizViewManager extends CordovaPlugin {
                 _bottom = 0 - _y;
             }
         }
-        /*
-        ViewGroup.MarginLayoutParams marginParams = (ViewGroup.MarginLayoutParams) webView.getLayoutParams();
-        Log.d("WizViewManager", marginParams.toString());
-        marginParams.setMargins(_left, _top, _right, _bottom);
 
-        webView.setLayoutParams(marginParams);
-         */
         LinearLayout.LayoutParams layoutParams = (LinearLayout.LayoutParams) view.getLayoutParams();
         Log.d("WizViewManager", layoutParams.toString());
         layoutParams.setMargins(_left, _top, _right, _bottom);
