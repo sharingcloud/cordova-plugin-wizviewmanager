@@ -283,7 +283,6 @@ public class WizViewManager extends CordovaPlugin {
                             targetView.removeAllViews();
                             targetView.destroyDrawingCache();
                             targetView.destroy();
-                            targetView = null;
 
                             viewGroup = null;
                         }
